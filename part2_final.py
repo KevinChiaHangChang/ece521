@@ -91,7 +91,7 @@ def q2part1():
         batch_idx = step%numBatches
         trainDataBatch = trainData[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
         trainTargetBatch = trainTarget[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
-        _, train_W, train_b, train_yhat = sess.run([train, W, b, y_pred], feed_dict={X: trainDataBatch, y_target: trainTargetBatch, l_rate: each_l_rate, W_lambda: each_W_lambda})
+        sess.run([train, W, b, y_pred], feed_dict={X: trainDataBatch, y_target: trainTargetBatch, l_rate: each_l_rate, W_lambda: each_W_lambda})
         if batch_idx == numBatches-1:
             train_error = sess.run(loss, feed_dict={X: trainDataBatch, y_target: trainTargetBatch, W_lambda: each_W_lambda})
             train_accuracy = sess.run(accuracy, feed_dict={X: trainDataBatch, y_target: trainTargetBatch})
@@ -112,14 +112,116 @@ def q2part1():
     f, axarr = plt.subplots(2)
     axarr[0].plot(train_error_list, label="training set cross-entropy loss")
     axarr[0].plot(valid_error_list, label="validation set cross-entropy loss")
-    axarr[0].set_title("cross-entropy loss")
+    axarr[0].set_title("Cross-Entropy Loss")
     axarr[0].legend()
     axarr[1].plot(train_accuracy_list, label="training set classification accuracy")
     axarr[1].plot(valid_accuracy_list, label="validation set classification accuracy")
-    axarr[1].set_title("classification accuracy")
+    axarr[1].set_title("Classification Accuracy")
     axarr[1].legend()
     plt.savefig("part2_1_1.png")
 
+def q2part2():
+
+    # load data
+    trainData, trainTarget, validData, validTarget, testData, testTarget = data_gen()
+
+    # divide data into batches
+    epoch_size = len(trainData)
+    batch_size = 500
+    numBatches = epoch_size/batch_size
+    print("Number of batches: %d" % numBatches)
+
+
+    # flatten training data
+    trainData = np.reshape(trainData,[epoch_size,-1])
+    # flatten validation data
+    validData = np.reshape(validData,[100,-1])
+    # flatten test data
+    testData = np.reshape(testData,[145,-1])
+
+    # variable creation
+    W = tf.Variable(tf.random_normal(shape=[trainData.shape[1], 1], stddev=0.35, seed=521), name="weights")
+    b = tf.Variable(0.0, name="biases")
+    X = tf.placeholder(tf.float32, name="input_x")
+    y_target = tf.placeholder(tf.float32, name="target_y")
+
+    # graph definition
+    y_pred = tf.matmul(X,W) + b
+
+    # need to define W_lambda, l_rate
+    l_rate = tf.placeholder(tf.float32, [], name="learning_rate")
+    W_lambda = tf.placeholder(tf.float32, [], name="weight_decay")
+
+    # error definition
+    logits_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=y_pred, labels=y_target)/2.0, name="logits_loss")
+    W_decay = tf.reduce_sum(tf.multiply(W,W))*W_lambda/2.0
+    loss = logits_loss + W_decay
+
+    # training mechanism
+    sgd_optimizer = tf.train.GradientDescentOptimizer(learning_rate=l_rate)
+    sgd_train = sgd_optimizer.minimize(loss=loss)
+    adam_optimizer = tf.train.AdamOptimizer(learning_rate=l_rate)
+    adam_train = adam_optimizer.minimize(loss=loss)
+
+    # specify learning rate
+    each_l_rate = 0.001
+    # specify weight decay coefficient
+    each_W_lambda = 0.01
+
+    sgd_error_list = []
+    adam_error_list = []
+
+    # initialize session
+    sess = tf.Session()
+    init = tf.global_variables_initializer()
+    sess.run(init)
+
+    sess.run(W)
+    sess.run(b)
+    
+    for step in range(0,5000):
+
+        batch_idx = step%numBatches
+        trainDataBatch = trainData[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
+        trainTargetBatch = trainTarget[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
+        sess.run([sgd_train, W, b, y_pred], feed_dict={X: trainDataBatch, y_target: trainTargetBatch, l_rate: each_l_rate, W_lambda: each_W_lambda})
+        if batch_idx == numBatches-1:
+            sgd_train_error = sess.run(loss, feed_dict={X: trainDataBatch, y_target: trainTargetBatch, W_lambda: each_W_lambda})
+            sgd_error_list.append(sgd_train_error)
+        if step%1000==0 and step > 0:
+            print("Step: %d " % step)
+            print("SGD training error: %f " % sgd_error_list[-1])
+
+    # initialize session
+    sess = tf.Session()
+    init = tf.global_variables_initializer()
+    sess.run(init)
+
+    sess.run(W)
+    sess.run(b)
+
+    for step in range(0,5000):
+
+        batch_idx = step%numBatches
+        trainDataBatch = trainData[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
+        trainTargetBatch = trainTarget[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
+        sess.run([adam_train, W, b, y_pred], feed_dict={X: trainDataBatch, y_target: trainTargetBatch, l_rate: each_l_rate, W_lambda: each_W_lambda})
+        if batch_idx == numBatches-1:
+            adam_train_error = sess.run(loss, feed_dict={X: trainDataBatch, y_target: trainTargetBatch, W_lambda: each_W_lambda})
+            adam_error_list.append(adam_train_error)
+        if step%1000==0 and step > 0:
+            print("Step: %d " % step)
+            print("Adam training error: %f " % adam_error_list[-1])
+
+    plt.clf()
+    plt.plot(sgd_error_list, label="SGD training error")
+    plt.plot(adam_error_list, label="Adam training error")
+    plt.title("SGD vs Adam Optimizer Training Error")
+    plt.legend()
+    plt.savefig("part_2_1_2.png")
+
+
 if __name__ == '__main__':
-    q2part1()
+    # q2part1()
+    q2part2()
 
