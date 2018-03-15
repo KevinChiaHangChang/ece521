@@ -44,7 +44,7 @@ def q2part1():
     testData = np.reshape(testData,[145,-1])
 
     # variable creation
-    W = tf.Variable(tf.random_normal(shape=[trainData.shape[1], 1], stddev=0.5, seed=521), name="weights")
+    W = tf.Variable(tf.random_normal(shape=[trainData.shape[1], 1], stddev=0.35, seed=521), name="weights")
     b = tf.Variable(0.0, name="biases")
     X = tf.placeholder(tf.float32, name="input_x")
     y_target = tf.placeholder(tf.float32, name="target_y")
@@ -57,7 +57,7 @@ def q2part1():
     W_lambda = tf.placeholder(tf.float32, [], name="weight_decay")
 
     # error definition
-    logits_loss = tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(logits=y_pred, labels=y_target)/(2.0*batch_size), name="logits_loss")
+    logits_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=y_pred, labels=y_target)/2.0, name="logits_loss")
     W_decay = tf.reduce_sum(tf.multiply(W,W))*W_lambda/2.0
     loss = logits_loss + W_decay
 
