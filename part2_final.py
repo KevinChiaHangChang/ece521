@@ -421,7 +421,7 @@ def q2part3():
         tf.cast(tf.equal(tf.cast(tf.greater(y_pred_sigmoid, 0.5), tf.float32), y_target), tf.float32))
 
     # training mechanism
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate=l_rate)
+    optimizer = tf.train.AdamOptimizer(learning_rate=l_rate)
     train = optimizer.minimize(loss=loss)
 
     # specify learning rate
