@@ -2,6 +2,16 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import timeit
+
+def timestamp(message, last_time=0):
+
+    if last_time ==0:
+        elapsed_time = timeit.default_timer()
+    else:
+        elapsed_time = timeit.default_timer()-last_time
+        print(message, elapsed_time)
+    return elapsed_time
 
 def data_gen():
 
@@ -50,7 +60,7 @@ def q1part1():
     W_lambda = tf.placeholder(tf.float32, [], name="weight_decay")
 
     # error definition
-    mse = tf.reduce_sum(tf.square(y_pred-y_target), name="mse")/(2.0*batch_size)
+    mse = tf.reduce_mean(tf.square(y_pred-y_target)/2.0, name="mse")
     W_decay = tf.reduce_sum(tf.multiply(W,W))*W_lambda/2
     loss = mse + W_decay
 
@@ -87,16 +97,19 @@ def q1part1():
             # if step%1000 == 0:
             #     print("Step: %d " % step)
             #     print("Error: %f" % err)
-        print("Minimal error: %f" % minimal_error)
-        print("Error list size: %d " % len(err_list))
+        print("MSE error is : %f" % err)
         error.append(err_list)
     # plot image
     plt.clf()
     plt.plot(error[0], label='learning rate: 0.005')
     plt.plot(error[1], label='learning rate: 0.001')
     plt.plot(error[2], label='learning rate: 0.0001')
+    x1, x2, x3, x4 = plt.axis()
+    plt.axis((x1, x2, 0, 10))
     plt.title("linear regression w/ stochastic gradient descent")
     plt.legend()
+    plt.xlabel('number of epoch')
+    plt.ylabel('MSE error')
     plt.savefig("sgd_learning_rate.png")
 
 def q1part2():
@@ -136,7 +149,7 @@ def q1part2():
         W_lambda = tf.placeholder(tf.float32, [], name="weight_decay")
 
         # error definition
-        mse = tf.reduce_sum(tf.square(y_pred-y_target), name="mse")/(2.0*batch_size)
+        mse = tf.reduce_mean(tf.square(y_pred-y_target)/2.0, name="mse")
         W_decay = tf.reduce_sum(tf.multiply(W,W))*W_lambda/2
         loss = mse + W_decay
 
@@ -168,12 +181,11 @@ def q1part2():
             if batch_idx == numBatches-1:
                 err_list.append(err)
             minimal_error = min(minimal_error,err)
-            if step%5000 == 0:
-                print("Step: %d " % step)
-                print("Error: %f" % err)
-        print("Minimal error: %f" % minimal_error)
-        print("Error list size: %d " % len(err_list))
+            # if step%5000 == 0:
+            #     print("Step: %d " % step)
+            #     print("Error: %f" % err)
         error.append(err_list)
+        print("The MSE error is: %f" % err)
 
     # plot image
     plt.clf()
@@ -184,8 +196,9 @@ def q1part2():
     plt.axis((x1, x2, 0, 1))
     plt.title("linear regression w/ stochastic gradient descent")
     plt.legend()
+    plt.xlabel('number of epoch')
+    plt.ylabel('MSE error')
     plt.savefig("sgd_batch_size.png")
-
 
 def q1part3():
     # load data
@@ -242,7 +255,7 @@ def q1part3():
     W_lambda = tf.placeholder(tf.float32, [], name="weight_decay")
 
     # error definition
-    mse = tf.reduce_sum(tf.square(y_pred-y_target)/(2.0*batch_size), name="mse")
+    mse = tf.reduce_mean(tf.square(y_pred-y_target)/2.0, name="mse")
     # DEBUGGING (NORM might not be right function to use)
     W_decay = tf.reduce_sum(tf.multiply(W,W))*W_lambda/2
     loss = mse + W_decay
@@ -371,9 +384,12 @@ def q1part3():
     # print("Test accuracy: %f " % accuracy_test)
 
 def q1part4():
+
     sess = tf.InteractiveSession()
 
     trainData, trainTarget, validData, validTarget, testData, testTarget = data_gen()
+
+    elapsed_time_norm = timestamp("")
     realTrainData = tf.convert_to_tensor(trainData)
     realTrainData = tf.reshape(realTrainData, [3500, -1])
     biasVec = tf.convert_to_tensor([1 for i in range(3500)])
@@ -389,6 +405,8 @@ def q1part4():
     Wnorm = tf.matrix_inverse(Wnorm)
     Wnorm = tf.matmul(Wnorm, tf.transpose(realTrainData))
     Wnorm = tf.matmul(Wnorm, realTrainTarget)
+
+    elapsed_time_norm = timestamp("Computation time for W using normal equation:", elapsed_time_norm)
 
     trainData = np.reshape(trainData,[3500,-1])
 
@@ -409,7 +427,7 @@ def q1part4():
     W_lambda = tf.placeholder(tf.float32, [], name="weight_decay")
 
     # error definition
-    mse = tf.reduce_sum(tf.square(y_pred-y_target), name="mse")/(2.0*batch_size)
+    mse = tf.reduce_mean(tf.square(y_pred-y_target)/2.0, name="mse")
     W_decay = tf.reduce_sum(tf.multiply(W,W))*W_lambda/2
     loss = mse + W_decay
 
@@ -423,12 +441,14 @@ def q1part4():
     sess = tf.InteractiveSession()
     sess.run(init)
 
+    elapsed_time_SGD = timestamp("")
     for step in range(0,20000):
         batch_idx = step%numBatches
         trainDataBatch = trainData[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
         trainTargetBatch = trainTarget[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
-        _, err, currentW, currentb, yhat = sess.run([train, loss, W, b, y_pred], feed_dict={X: trainDataBatch, y_target: trainTargetBatch, l_rate: each_l_rate, W_lambda: 0.1})
+        _, err, currentW, currentb, yhat = sess.run([train, loss, W, b, y_pred], feed_dict={X: trainDataBatch, y_target: trainTargetBatch, l_rate: each_l_rate, W_lambda: 0.0})
 
+    elapsed_time_SGD = timestamp("Computation time for W using SGD:", elapsed_time_SGD)
     W_SGD = tf.cast(tf.convert_to_tensor(currentW), tf.float64)
     b_SGD = tf.cast(tf.convert_to_tensor(currentb), tf.float64)
 
@@ -473,5 +493,5 @@ def q1part4():
 if __name__ == '__main__':
     # q1part1()
     # q1part2()
-    # q1part3()
-    q1part4()
+    q1part3()
+    # q1part4()
