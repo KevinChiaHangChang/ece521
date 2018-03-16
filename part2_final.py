@@ -24,6 +24,102 @@ def data_gen():
     testData, testTarget = Data[3600:], Target[3600:]
     return trainData, trainTarget, validData, validTarget, testData, testTarget
 
+def optimal_l_rate():
+
+    # load data
+    trainData, trainTarget, validData, validTarget, testData, testTarget = data_gen()
+
+    # divide data into batches
+    epoch_size = len(trainData)
+    batch_size = 500
+    numBatches = epoch_size/batch_size
+    print("Number of batches: %d" % numBatches)
+
+
+    # flatten training data
+    trainData = np.reshape(trainData,[epoch_size,-1])
+    # flatten validation data
+    validData = np.reshape(validData,[100,-1])
+    # flatten test data
+    testData = np.reshape(testData,[145,-1])
+
+    # reshape training target
+    trainTarget = np.reshape(trainTarget,[epoch_size,-1])
+    # reshape validation target
+    validTarget = np.reshape(validTarget,[100,-1])
+    # reshape test target
+    testTarget = np.reshape(testTarget,[145,-1])
+
+    # variable creation
+    W = tf.Variable(tf.random_normal(shape=[trainData.shape[1], 1], stddev=0.35, seed=521), name="weights")
+    b = tf.Variable(0.0, name="biases")
+    X = tf.placeholder(tf.float32, name="input_x")
+    y_target = tf.placeholder(tf.float32, name="target_y")
+
+    # graph definition
+    y_pred = tf.matmul(X,W) + b
+
+    # need to define W_lambda, l_rate
+    l_rate = tf.placeholder(tf.float32, [], name="learning_rate")
+    W_lambda = tf.placeholder(tf.float32, [], name="weight_decay")
+
+    # error definition
+    logits_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=y_pred, labels=y_target)/2.0, name="logits_loss")
+    W_decay = tf.reduce_sum(tf.multiply(W,W))*W_lambda/2.0
+    loss = logits_loss + W_decay
+
+    # accuracy definition
+    y_pred_sigmoid = tf.sigmoid(y_pred)
+    accuracy = tf.reduce_mean( tf.cast( tf.equal( tf.cast(tf.greater(y_pred_sigmoid,0.5),tf.float32), y_target ), tf.float32) )
+
+    # training mechanism
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate=l_rate)
+    train = optimizer.minimize(loss=loss)
+
+    # specify learning rates
+    l_rates = [0.005, 0.001, 0.0001]
+    # specify weight decay coefficient
+    each_W_lambda = 0.0
+
+    train_error_list = []
+
+    for each_l_rate in l_rates:
+
+        # initialize session
+        sess = tf.Session()
+        init = tf.global_variables_initializer()
+        sess.run(init)
+
+        sess.run(W)
+        sess.run(b)
+
+        for step in range(0,5000):
+            batch_idx = step%numBatches
+            trainDataBatch = trainData[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
+            trainTargetBatch = trainTarget[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
+            # print("Train data size: %d x %d" % (trainDataBatch.shape[0],trainDataBatch.shape[1]))
+            # print("Train target size: %d" % (trainTargetBatch.shape[0]))
+            _, currentW, currentb, yhat = sess.run([train, W, b, y_pred], feed_dict={X: trainDataBatch, y_target: trainTargetBatch, l_rate: each_l_rate, W_lambda: each_W_lambda})
+            if batch_idx == numBatches-1:
+                train_error = sess.run(loss, feed_dict={X: trainDataBatch, y_target: trainTargetBatch, W_lambda: each_W_lambda})
+                train_accuracy = sess.run(accuracy, feed_dict={X: trainDataBatch, y_target: trainTargetBatch})
+                # valid_error = sess.run(loss, feed_dict={X: validData, y_target: validTarget, W_lambda: each_W_lambda})
+                # valid_accuracy = sess.run(accuracy, feed_dict={X: validData, y_target: validTarget})
+                # train_error_list.append(train_error)
+                # train_accuracy_list.append(train_accuracy)
+                # valid_error_list.append(valid_error)
+                # valid_accuracy_list.append(valid_accuracy)
+            if step%1000==0:
+                print("Step: %d " % step)
+        
+        training_error = sess.run(loss, feed_dict={X: trainDataBatch, y_target: trainTargetBatch, W_lambda: each_W_lambda})
+        train_error_list.append(training_error)
+
+    best_l_rate = l_rates[train_error_list.index(min(train_error_list))]
+    print(train_error_list)
+    print("Best learning rate: %f " % best_l_rate)
+
+
 def q2part1():
 
     # load data
@@ -110,6 +206,7 @@ def q2part1():
     # plot image
     plt.clf()
     f, axarr = plt.subplots(2)
+    f.tight_layout()
     axarr[0].plot(train_error_list, label="training set cross-entropy loss")
     axarr[0].plot(valid_error_list, label="validation set cross-entropy loss")
     axarr[0].set_title("Cross-Entropy Loss")
@@ -223,5 +320,6 @@ def q2part2():
 
 if __name__ == '__main__':
     # q2part1()
-    q2part2()
+    # q2part2()
+    optimal_l_rate()
 
