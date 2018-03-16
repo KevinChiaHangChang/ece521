@@ -202,6 +202,10 @@ def q2part1():
             print("Training error: %f " % train_error_list[-1])
             print("Validation error: %f " % valid_error_list[-1])
 
+    last_training_error = sess.run(loss, feed_dict={X: trainDataBatch, y_target: trainTargetBatch, W_lambda: each_W_lambda})
+    last_training_accuracy = sess.run(accuracy, feed_dict={X: trainDataBatch, y_target: trainTargetBatch, W_lambda: each_W_lambda})
+    print("Last training error: %f" % last_training_error)
+    print("Last training accuracy: %f" % last_training_accuracy)
 
     # plot image
     plt.clf()
@@ -319,7 +323,7 @@ def q2part2():
 
 
 if __name__ == '__main__':
-    # q2part1()
+    q2part1()
     # q2part2()
-    optimal_l_rate()
+    # optimal_l_rate()
 
