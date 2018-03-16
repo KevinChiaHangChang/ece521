@@ -185,6 +185,7 @@ def q3part1():
 
     # load data
     trainData, trainTarget, validData, validTarget, testData, testTarget = data_gen()
+    print("Training data size: %d" % (len(trainData)))
 
     # divide data into batches
     epoch_size = len(trainData)
@@ -278,18 +279,25 @@ def q3part1():
             print("Training error: %f " % train_error_list[-1])
             print("Validation error: %f " % valid_error_list[-1])
 
+    print("Training error list size: %d" % (len(train_error_list)))
+    print("Validation error list size: %d" %(len(valid_error_list)))
     # plot image
     plt.clf()
+    plt.xlim([0,700])
     f, axarr = plt.subplots(2)
-    f.tight_layout()
     axarr[0].plot(train_error_list, label="training set cross-entropy loss")
     axarr[0].plot(valid_error_list, label="validation set cross-entropy loss")
-    axarr[0].set_title("Cross-Entropy Loss")
+    axarr[0].set_ylabel("Cross-Entropy Loss")
+    axarr[0].set_xlabel("Number of Epoch")
     axarr[0].legend()
     axarr[1].plot(train_accuracy_list, label="training set classification accuracy")
     axarr[1].plot(valid_accuracy_list, label="validation set classification accuracy")
-    axarr[1].set_title("Classification Accuracy")
+    axarr[1].set_ylabel("Classification Accuracy")
+    axarr[1].set_xlabel("Number of Epoch")
     axarr[1].legend()
+    f.tight_layout()
+    f.suptitle("Multi-Class notMNIST")
+    f.subplots_adjust(top=0.88)
     plt.savefig("part2_2_1.png")
 
     test_error = sess.run(loss, feed_dict={X: testData, y_target: testTarget, W_lambda: each_W_lambda})
@@ -381,7 +389,7 @@ def optimal_l_rate_facescrub():
         sess.run(W)
         sess.run(b)
 
-        for step in range(0,5000):
+        for step in range(0,10000):
             batch_idx = step%numBatches
             trainDataBatch = trainData[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
             trainTargetBatch = trainTarget[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
@@ -496,7 +504,7 @@ def optimal_W_lambda_facescrub():
         sess.run(W)
         sess.run(b)
 
-        for step in range(0,5000):
+        for step in range(0,10000):
             batch_idx = step%numBatches
             trainDataBatch = trainData[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
             trainTargetBatch = trainTarget[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
@@ -529,7 +537,7 @@ def optimal_W_lambda_facescrub():
 def q3part2():
 
     # best learning rate = 0.005
-    # best weight decay coefficient = 0.0
+    # best weight decay coefficient = 0.001
 
     # load data
     trainData, validData, testData, trainTarget, validTarget, testTarget = data_segmentation('data.npy','target.npy', 0) # operation = 0 for face recognition
@@ -599,7 +607,7 @@ def q3part2():
     each_l_rate = 0.005
     # specify weight decay coefficient
     # W_lambdas = [0.0, 0.001, 0.1, 1]
-    each_W_lambda = 0.0
+    each_W_lambda = 0.001
 
     # initialize session
     sess = tf.Session()
@@ -614,7 +622,7 @@ def q3part2():
     valid_error_list = []
     valid_accuracy_list = []
 
-    for step in range(0,5000):
+    for step in range(0,10000):
         batch_idx = step%numBatches
         trainDataBatch = trainData[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
         trainTargetBatch = trainTarget[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
@@ -636,15 +644,19 @@ def q3part2():
     # plot image
     plt.clf()
     f, axarr = plt.subplots(2)
-    f.tight_layout()
     axarr[0].plot(train_error_list, label="training set cross-entropy loss")
     axarr[0].plot(valid_error_list, label="validation set cross-entropy loss")
-    axarr[0].set_title("Cross-Entropy Loss")
+    axarr[0].set_xlabel("Number of Epoch")
+    axarr[0].set_ylabel("Cross-Entropy Loss")
     axarr[0].legend()
     axarr[1].plot(train_accuracy_list, label="training set classification accuracy")
     axarr[1].plot(valid_accuracy_list, label="validation set classification accuracy")
-    axarr[1].set_title("Classification Accuracy")
+    axarr[1].set_xlabel("Number of Epoch")
+    axarr[1].set_ylabel("Classification Accuracy")
     axarr[1].legend()
+    f.tight_layout()
+    f.suptitle("Multi-Class FaceScrub")
+    f.subplots_adjust(top=0.88)
     plt.savefig("part2_2_2.png")
 
     test_error = sess.run(loss, feed_dict={X: testData, y_target: testTarget, W_lambda: each_W_lambda})
@@ -658,6 +670,6 @@ if __name__ == '__main__':
     # optimal_l_rate()
     # optimal_l_rate_facescrub()
     # optimal_W_lambda_facescrub()
-    # q3part1()
-    q3part2()
+    q3part1()
+    # q3part2()
 

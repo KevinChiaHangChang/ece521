@@ -47,7 +47,7 @@ def q1part1():
     print("Number of batches: %d" % numBatches)
 
     # variable creation
-    W = tf.Variable(tf.truncated_normal(shape=[int(np.shape(trainData)[1]), 1], stddev=0.5), name="weights")
+    W = tf.Variable(tf.random_normal(shape=[int(np.shape(trainData)[1]), 1], stddev=0.5), name="weights")
     b = tf.Variable(0.0, name="biases")
     X = tf.placeholder(tf.float32, [batch_size, int(np.shape(trainData)[1])], name="input_x")
     y_target = tf.placeholder(tf.float32, [batch_size, 1], name="target_y")
@@ -122,7 +122,6 @@ def q1part2():
 
     batch_list = [500, 1500, 3500]
     error = list()
-
     for batch_size in batch_list:
 
         if batch_size == 1500:
@@ -136,7 +135,7 @@ def q1part2():
         print("Number of batches: %d" % numBatches)
 
         # variable creation
-        W = tf.Variable(tf.truncated_normal(shape=[int(np.shape(trainData)[1]), 1], stddev=0.5), name="weights")
+        W = tf.Variable(tf.random_normal(shape=[int(np.shape(trainData)[1]), 1], stddev=0.5), name="weights")
         b = tf.Variable(0.0, name="biases")
         X = tf.placeholder(tf.float32, [batch_size, int(np.shape(trainData)[1])], name="input_x")
         y_target = tf.placeholder(tf.float32, [batch_size, 1], name="target_y")
@@ -172,6 +171,7 @@ def q1part2():
         err_list = []
         minimal_error = 100
         index = 0
+        elapsed_training_time = timestamp("")
         for step in range(0,20000):
             batch_idx = step%numBatches
             trainDataBatch = trainData[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
@@ -186,6 +186,7 @@ def q1part2():
             #     print("Error: %f" % err)
         error.append(err_list)
         print("The MSE error is: %f" % err)
+        elapsed_training_time = timestamp("Training time: ", elapsed_training_time)
 
     # plot image
     plt.clf()
@@ -239,7 +240,7 @@ def q1part3():
     # print(sess.run(tf.shape(trainDataTensor)))
 
     # variable creation
-    W = tf.Variable(tf.truncated_normal(shape=[trainData.shape[1], 1], stddev=0.5), name="weights")
+    W = tf.Variable(tf.random_normal(shape=[trainData.shape[1], 1], stddev=0.35, seed=521), name="weights")
     b = tf.Variable(0.0, name="biases")
     X = tf.placeholder(tf.float32, name="input_x")
     y_target = tf.placeholder(tf.float32, name="target_y")
@@ -290,23 +291,21 @@ def q1part3():
         # initialize minimum error
         minimal_error = 100
 
-        trainDataRand, trainTargetRand = trainData, trainTarget
-
         for step in range(0,20000):
 
             # compute batch index
             batch_idx = step%numBatches
 
             # randomize
-            if batch_idx == 0:
-                randIdx = np.arange(epoch_size)
-                np.random.shuffle(randIdx)
-                trainDataRand, trainTargetRand = trainData[randIdx[:epoch_size]], trainTarget[randIdx[:epoch_size]]
+            # if batch_idx == 0:
+            #     randIdx = np.arange(epoch_size)
+            #     np.random.shuffle(randIdx)
+            #     trainDataRand, trainTargetRand = trainData[randIdx[:epoch_size]], trainTarget[randIdx[:epoch_size]]
 
             # extract training data batch
-            trainDataBatch = trainDataRand[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
+            trainDataBatch = trainData[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
             # extract training target batch
-            trainTargetBatch = trainTargetRand[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
+            trainTargetBatch = trainTarget[int(batch_idx*batch_size):int((batch_idx+1)*batch_size)]
             # train
             _, err, currentW, currentb, yhat = sess.run([train, loss, W, b, y_pred], feed_dict={X: trainDataBatch, y_target: trainTargetBatch, l_rate: 0.005, W_lambda: each_W_lambda})
             # append error when reach maximum batch index
@@ -414,7 +413,7 @@ def q1part4():
     numBatches = len(trainData)/batch_size
 
     # variable creation
-    W = tf.Variable(tf.truncated_normal(shape=[int(np.shape(trainData)[1]), 1], stddev=0.5), name="weights")
+    W = tf.Variable(tf.random_normal(shape=[int(np.shape(trainData)[1]), 1], stddev=0.5), name="weights")
     b = tf.Variable(0.0, name="biases")
     X = tf.placeholder(tf.float32, [batch_size, int(np.shape(trainData)[1])], name="input_x")
     y_target = tf.placeholder(tf.float32, [batch_size, 1], name="target_y")
