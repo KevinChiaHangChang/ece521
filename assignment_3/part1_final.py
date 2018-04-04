@@ -209,6 +209,8 @@ import matplotlib.pyplot as plt
 num_classes = 10
 best_l_rate = 0.001
 predefined_w_lambda = 3e-4
+default_num_hidden = 1000
+default_num_layers = 2
 
 def reshape_target(target,depth):
 	x = np.zeros((len(target), depth))
@@ -259,13 +261,12 @@ def layerwise_build(prev_layer_X,num_hidden):
 
 	return next_layer_z
 
-def buildGraph(l_rate=best_l_rate,w_lambda=predefined_w_lambda,dropout=False,visualize=False):
+def buildGraph(l_rate=best_l_rate,num_layers=default_num_layers,num_hidden=default_num_hidden,w_lambda=predefined_w_lambda,dropout=0,visualize=False):
 
 	# define hyperparameters
 	num_iterations = 1200
 	batch_size = 500
 	num_batches = len(trainData)/batch_size
-	num_hidden = 1000
 
 	tf.reset_default_graph()
 
@@ -273,21 +274,33 @@ def buildGraph(l_rate=best_l_rate,w_lambda=predefined_w_lambda,dropout=False,vis
 	X = tf.placeholder(name="X", shape=[None,trainData.shape[1]], dtype=tf.float32)
 	y_target = tf.placeholder(name="y_target", shape=[None,num_classes], dtype=tf.float32)
 
+	input_layer = X
+
 	# build neural network
 	# NOTE: use variable scope to distinguish between first and second layer weights and bias
-	with tf.variable_scope("first_layer"):
-		first_layer = tf.nn.relu(layerwise_build(X,num_hidden))
-	if dropout:
-		first_layer = tf.nn.dropout(first_layer,0.5)
-	with tf.variable_scope("second_layer"):
-		second_layer = layerwise_build(first_layer,num_classes)
-	y_pred = tf.nn.softmax(second_layer)
+	for i in range(1,num_layers+1):
+		print("Layer:",i)
+		with tf.variable_scope("layer_"+str(i)):
+			if i == num_layers:
+				print("Number of output units:",num_classes)
+				input_layer = layerwise_build(input_layer,num_classes)
+				if dropout:
+					input_layer = tf.nn.dropout(input_layer,dropout)
+			else:
+				print("Number of hidden units:",num_hidden)
+				input_layer = tf.nn.relu(layerwise_build(input_layer,num_hidden))
+				if dropout:
+					input_layer = tf.nn.dropout(input_layer,dropout)
+	y_pred = tf.nn.softmax(input_layer)
 
 	# loss function
-	cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=second_layer, labels=y_target))
-	w_decay1 = w_lambda*(tf.reduce_sum(tf.square(tf.get_default_graph().get_tensor_by_name("first_layer/W:0"))))/2.0
-	w_decay2 = w_lambda*(tf.reduce_sum(tf.square(tf.get_default_graph().get_tensor_by_name("second_layer/W:0"))))/2.0
-	loss = cross_entropy_loss+w_decay1+w_decay2
+	cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=input_layer, labels=y_target))
+	total_decay = 0
+	for i in range(1,num_layers):
+		total_decay += w_lambda*(tf.reduce_sum(tf.square(tf.get_default_graph().get_tensor_by_name("layer_"+str(i)+"/W:0"))))/2.0
+	# w_decay1 = w_lambda*(tf.reduce_sum(tf.square(tf.get_default_graph().get_tensor_by_name("first_layer/W:0"))))/2.0
+	# w_decay2 = w_lambda*(tf.reduce_sum(tf.square(tf.get_default_graph().get_tensor_by_name("second_layer/W:0"))))/2.0
+	loss = cross_entropy_loss+total_decay
 
 	# classification error
 	num_correct = tf.equal(tf.argmax(y_pred,1), tf.argmax(y_target,1))
@@ -381,16 +394,16 @@ def buildGraph(l_rate=best_l_rate,w_lambda=predefined_w_lambda,dropout=False,vis
 		weights = []
 		# 25% completion
 		saver.restore(sess,"./checkpoints/100_model.ckpt")
-		weights.append(sess.run(tf.get_default_graph().get_tensor_by_name("first_layer/W:0")))
+		weights.append(sess.run(tf.get_default_graph().get_tensor_by_name("layer_1/W:0")))
 		# 50% completion
 		saver.restore(sess,"./checkpoints/50_model.ckpt")
-		weights.append(sess.run(tf.get_default_graph().get_tensor_by_name("first_layer/W:0")))
+		weights.append(sess.run(tf.get_default_graph().get_tensor_by_name("layer_1/W:0")))
 		# 75% completion
 		saver.restore(sess,"./checkpoints/75_model.ckpt")
-		weights.append(sess.run(tf.get_default_graph().get_tensor_by_name("first_layer/W:0")))
+		weights.append(sess.run(tf.get_default_graph().get_tensor_by_name("layer_1/W:0")))
 		# 100% completion
 		saver.restore(sess,"./checkpoints/100_model.ckpt")
-		weights.append(sess.run(tf.get_default_graph().get_tensor_by_name("first_layer/W:0")))
+		weights.append(sess.run(tf.get_default_graph().get_tensor_by_name("layer_1/W:0")))
 
 		return weights
 
@@ -416,7 +429,7 @@ def part1_1_1():
 	global_test_loss = []
 	global_test_error = []
 	for each_l_rate in l_rates:
-		train_loss,train_error,valid_loss,valid_error,test_loss,test_error = buildGraph(each_l_rate,predefined_w_lambda,False)
+		train_loss,train_error,valid_loss,valid_error,test_loss,test_error = buildGraph(l_rate=each_l_rate)
 		global_train_loss.append(train_loss[-1])
 		global_train_error.append(train_error[-1])
 		global_valid_loss.append(valid_loss[-1])
@@ -432,18 +445,15 @@ def part1_1_1():
 	# print("\tTest cross entropy loss:",global_test_loss[min_index],"\tTest classification error:",global_test_error[min_index])
 	return
 
-def part1_1_2(visualize=False):
+def part1_1_2():
 
-	if visualize:
-		return buildGraph(best_l_rate,predefined_w_lambda,False,visualize)
-
-	train_loss,train_error,valid_loss,valid_error,test_loss,test_error = buildGraph(best_l_rate,predefined_w_lambda,False,visualize)
+	train_loss,train_error,valid_loss,valid_error,test_loss,test_error = buildGraph()
 
 	# plot image
 	plt.clf()
 	plt.plot(train_loss, label="training cross entropy loss")
 	plt.plot(valid_loss, label="validation cross entropy loss")
-	plt.plot(test_error_list, label="testing cross entropy loss")
+	plt.plot(test_loss, label="testing cross entropy loss")
 	plt.title("cross entropy loss for 1-layer neural network")
 	plt.grid()
 	plt.legend()
@@ -454,7 +464,7 @@ def part1_1_2(visualize=False):
 	plt.clf()
 	plt.plot(train_error, label="training classification error")
 	plt.plot(valid_error, label="validation classification error")
-	plt.plot(test_classification_list, label="testing classification error")
+	plt.plot(test_error, label="testing classification error")
 	plt.title("classification error for 1-layer neural network")
 	plt.grid()
 	plt.legend()
@@ -463,12 +473,9 @@ def part1_1_2(visualize=False):
 	plt.savefig("1_1_2_classification_error.png")
 	return
 
-def part1_3_1(visualize=False):
+def part1_3_1():
 
-	if visualize:
-		return buildGraph(best_l_rate,0,True,visualize)
-
-	train_loss,train_error,valid_loss,valid_error,test_loss,test_error = buildGraph(best_l_rate,0,True,visualize)
+	train_loss,train_error,valid_loss,valid_error,test_loss,test_error = buildGraph(w_lambda=0,dropout=0.5)
 
 	# plot image
 	plt.clf()
@@ -480,7 +487,7 @@ def part1_3_1(visualize=False):
 	plt.legend()
 	plt.xlabel("number of epochs")
 	plt.ylabel("cross entropy loss")
-	plt.savefig("1_3_1_cross_entropy_loss.png")
+	plt.savefig("1_3_1_cross_entropy_loss_w_dropout.png")
 
 	plt.clf()
 	plt.plot(train_error, label="training classification error")
@@ -491,13 +498,13 @@ def part1_3_1(visualize=False):
 	plt.legend()
 	plt.xlabel("number of epochs")
 	plt.ylabel("classification error")
-	plt.savefig("1_3_1_classification_error.png")
+	plt.savefig("1_3_1_classification_error_w_dropout.png")
 	return
 
 def part1_3_2():
 
 	# no dropout
-	weights = buildGraph(best_l_rate,predefined_w_lambda,False,True)
+	weights = buildGraph(visualize=True)
 
 	for i in range(4):
 		print(i)
@@ -511,7 +518,7 @@ def part1_3_2():
 		plt.savefig("non_dropout_weights_completed_"+str((i+1)*25)+".png")
 
 	# dropout
-	d_weights = buildGraph(best_l_rate,0,True,True)
+	d_weights = buildGraph(w_lambda=0,dropout=0.5,visualize=True)
 
 	for i in range(4):
 		print(i)
@@ -530,20 +537,31 @@ def part1_3_2():
 def part1_4_1():
 
 	# define 5 random generator seeds
-	seeds = [1000611260]
+	seeds = [1000611260,1000303502,1000503154,1000612054]
 	for each_seed in seeds:
 		np.random.seed(each_seed)
-		l_rate = np.exp(3*np.random.rand()-7.5)
-		num_layers = np.random.randint(0,4)+1
-		num_hidden = 400*np.random.rand()+100
-		w_lambda = np.exp(3*np.random.rand()-9)
-		dropout = np.random.randint(0,2)
+		rand_l_rate = np.exp(3*np.random.rand()-7.5)
+		rand_num_layers = np.random.randint(1,6)
+		rand_num_hidden = np.random.randint(100,501)
+		rand_w_lambda = np.exp(3*np.random.rand()-9)
+		rand_dropout = np.random.rand()
+		print("Seed:",each_seed,"\n\tRandom learning rate:",rand_l_rate,"\n\tRandom number of layers:",rand_num_layers,"\n\tRandom number of hidden units:",rand_num_hidden,"\n\tRandom weight decay coefficient:",rand_w_lambda,"\n\tRandom dropout:",rand_dropout)
+
+		train_loss,train_error,valid_loss,valid_error,test_loss,test_error = buildGraph(l_rate=rand_l_rate,num_layers=rand_num_layers,num_hidden=rand_num_hidden,w_lambda=rand_w_lambda,dropout=rand_dropout)
+		print("Seed:",each_seed)
+		lowest_valid_loss = min(valid_loss)
+		lowest_test_error = min(test_error)
+
+		print("\tValidation loss:",lowest_valid_loss)
+		print("\tTest classification error:",lowest_test_error)
+	return
 
 if __name__ == '__main__':
 	# part1_1_1()
 	# part1_1_2()
 	# part1_3_1()
-	part1_3_2()
+	# part1_3_2()
+	part1_4_1()
 
 
 
