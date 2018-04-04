@@ -7,3 +7,6 @@
 
 # Images
 *.png
+
+# Documents
+*.pdf
