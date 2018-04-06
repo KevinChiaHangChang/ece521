@@ -133,33 +133,32 @@ def buildGraph(l_rate=best_l_rate,num_layers=default_num_layers,num_hidden=defau
 	# add graph to writer
 	writer = tf.summary.FileWriter("weights")
 	writer.add_graph(sess.graph)
-	W_image = tf.summary.image("W",tf.reshape(tf.get_default_graph().get_tensor_by_name("layer_1/W:0"),[-1,28,28,1]))
+	merged = tf.summary.merge_all()
+	# W_image = tf.summary.image("W",tf.reshape(tf.get_default_graph().get_tensor_by_name("layer_1/W:0"),[-1,28,28,1]))
 
 	# main loop
 	for step in range(num_iterations):
 
 		# save variables
-		# curr_weights = sess.run(tf.get_default_graph().get_tensor_by_name("second_layer/W:0"))
-		# curr_bias = sess.run(tf.get_default_graph().get_tensor_by_name("second_layer/b:0"))
 		completed = (step/num_iterations)*100
 		if completed >= 25 and not complete_25:
 			complete_25 = True
-			# weights.append(curr_weights)
-			# bias.append(curr_bias)
+			# merged25 = sess.run(merged, feed_dict={X:data_batch, y_target:target_batch})
+			# writer.add_summary(merged25)
 			saver.save(sess,"./checkpoints/25_model.ckpt")
 		elif completed >= 50 and not complete_50:
 			complete_50 = True
-			# weights.append(curr_weights)
-			# bias.append(curr_bias)
+			# merged50 = sess.run(merged, feed_dict={X:data_batch, y_target:target_batch})
+			# writer.add_summary(merged50)
 			saver.save(sess,"./checkpoints/50_model.ckpt")
 		elif completed >= 75 and not complete_75:
 			complete_75 = True
-			# weights.append(curr_weights)
-			# bias.append(curr_bias)
+			# merged75 = sess.run(merged, feed_dict={X:data_batch, y_target:target_batch})
+			# writer.add_summary(merged75)
 			saver.save(sess,"./checkpoints/75_model.ckpt")
 		elif step >= num_iterations-1:
-			# weights.append(curr_weights)
-			# bias.append(curr_bias)
+			# merged100 = sess.run(merged, feed_dict={X:data_batch, y_target:target_batch})
+			# writer.add_summary(merged100)
 			saver.save(sess,"./checkpoints/100_model.ckpt")
 
 		# get train data batch
@@ -196,46 +195,41 @@ def buildGraph(l_rate=best_l_rate,num_layers=default_num_layers,num_hidden=defau
 	if visualize:
 		weights = []
 		# 25% completion
-		saver.restore(sess,"./checkpoints/100_model.ckpt")
+		saver.restore(sess,"./checkpoints/25_model.ckpt")
 		weights25 = tf.get_default_graph().get_tensor_by_name("layer_1/W:0")
 		weights.append(sess.run(weights25))
 		print("Add 25\% completion summary")
-		sum25 = sess.run(W_image)
-		writer.add_summary(sum25,25)
-		writer.flush()
+		# writer.add_summary(sess.run(summary),25)
+		# sum25 = sess.run(W_image)
+		# writer.add_summary(sum25,25)
+		# writer.flush()
 		# 50% completion
 		saver.restore(sess,"./checkpoints/50_model.ckpt")
-		weights50 = tf.get_default_graph().get_tensor_by_name("layer_1/W:0")
-		weights.append(sess.run(weights50))
-		print("Add 50\% completion summary")
-		sum50 = sess.run(W_image)
-		writer.add_summary(sum50,50)
-		writer.flush()
+		# weights50 = tf.get_default_graph().get_tensor_by_name("layer_1/W:0")
+		# weights.append(sess.run(weights50))
+		# print("Add 50\% completion summary")
+		# sum50 = sess.run(W_image)
+		# writer.add_summary(sum50,50)
+		# writer.flush()
 		# 75% completion
 		saver.restore(sess,"./checkpoints/75_model.ckpt")
-		weights75 = tf.get_default_graph().get_tensor_by_name("layer_1/W:0")
-		weights.append(sess.run(weights75))
-		print("Add 75\% completion summary")
-		sum75 = sess.run(W_image)
-		writer.add_summary(sum75,75)
-		writer.flush()
+		# weights75 = tf.get_default_graph().get_tensor_by_name("layer_1/W:0")
+		# weights.append(sess.run(weights75))
+		# print("Add 75\% completion summary")
+		# sum75 = sess.run(W_image)
+		# writer.add_summary(sum75,75)
+		# writer.flush()
 		# 100% completion
 		saver.restore(sess,"./checkpoints/100_model.ckpt")
 		weights100 = tf.get_default_graph().get_tensor_by_name("layer_1/W:0")
 		weights.append(sess.run(weights100))
 		print("Add 100\% completion summary")
-		sum100 = sess.run(W_image)
-		writer.add_summary(sum100,100)
-		writer.flush()
+		# writer.add_summary(sess.run(summary),25)
+		# sum100 = sess.run(W_image)
+		# writer.add_summary(sum100,100)
+		# writer.flush()
 
 		return weights
-
-	# saver.restore(sess,"/75/model.ckpt")
-	# print("Weights (at 75\% progress)",tf.get_default_graph().get_tensor_by_name("second_layer/W:0").eval())
-	# saver.restore(sess,"/50/model.ckpt")
-	# print("Weights (at 50\% progress)",tf.get_default_graph().get_tensor_by_name("second_layer/W:0").eval())
-	# saver.restore(sess,"/25/model.ckpt")
-	# print("Weights (at 25\% progress)",tf.get_default_graph().get_tensor_by_name("second_layer/W:0").eval())
 
 	return train_loss,train_error,valid_loss,valid_error,test_loss,test_error
 
@@ -410,32 +404,44 @@ def part1_3_1():
 def part1_3_2():
 
 	# no dropout
-	weights = buildGraph(visualize=True)
+	weights = buildGraph(num_iterations=1350,visualize=True)
 
-	# for i in range(4):
-	# 	print(i)
-	# 	plt.figure()
-	# 	plt.title("non-dropout weights at "+str((i+1)*25)+"\% completion")
-	# 	for j in range(1000):
-	# 		plt.subplot(25,40,j+1)
-	# 		plt.axis('off')
-	# 		plt.tick_params(axis='both',left='off',right='off',top='off',bottom='off',labelleft='off',labelright='off',labeltop='off',labelbottom='off')
-	# 		plt.imshow(weights[i][:,j].reshape(28,28), cmap="gray")
-	# 	plt.savefig("non_dropout_weights_completed_"+str((i+1)*25)+".png")
+	for i in range(2):
+		if i == 0:
+			num = 25
+		else:
+			num = 100
+		print(i)
+		figure, axes = plt.subplots(10,10, figsize=(28,28), facecolor='w', edgecolor='k')
+		figure.subplots_adjust(hspace=0.5, wspace=0.001)
+		figure.suptitle("non-dropout weights at "+str(num)+"\% completion")
+		axes = axes.ravel()
+		for j in range(100):
+			# plt.axis('off')
+			# plt.tick_params(axis='both',left='off',right='off',top='off',bottom='off',labelleft='off',labelright='off',labeltop='off',labelbottom='off')
+			axes[j].imshow(weights[i][:,j].reshape(28,28), cmap="gray")
+		plt.tight_layout()
+		plt.savefig("non_dropout_weights_completed_"+str(num)+".png")
 
 	# dropout
-	# d_weights = buildGraph(w_lambda=0,dropout=0.5,visualize=True)
+	d_weights = buildGraph(num_iterations=1350,w_lambda=0,dropout=0.5,visualize=True)
 
-	# for i in range(4):
-	# 	print(i)
-	# 	plt.figure()
-	# 	plt.title("dropout weights at "+str((i+1)*25)+"\% completion")
-	# 	for j in range(1000):
-	# 		plt.subplot(25,40,j+1)
-	# 		plt.axis('off')
-	# 		plt.tick_params(axis='both',left='off',right='off',top='off',bottom='off',labelleft='off',labelright='off',labeltop='off',labelbottom='off')
-	# 		plt.imshow(d_weights[i][:,j].reshape(28,28), cmap="gray")
-	# 	plt.savefig("dropout_weights_completed_"+str((i+1)*25)+".png")
+	for i in range(2):
+		if i == 0:
+			num = 25
+		else:
+			num = 100
+		print(i)
+		figure, axes = plt.subplots(10,10, figsize=(28,28), facecolor='w', edgecolor='k')
+		figure.subplots_adjust(hspace=0.5, wspace=0.001)
+		figure.suptitle("dropout weights at "+str(num)+"\% completion")
+		axes = axes.ravel()
+		for j in range(100):
+			# plt.axis('off')
+			# plt.tick_params(axis='both',left='off',right='off',top='off',bottom='off',labelleft='off',labelright='off',labeltop='off',labelbottom='off')
+			axes[j].imshow(d_weights[i][:,j].reshape(28,28), cmap="gray")
+		plt.tight_layout()
+		plt.savefig("dropout_weights_completed_"+str(num)+".png")
 
 	return
 
